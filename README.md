@@ -1,25 +1,11 @@
 # astrodb_utils
-[![Test astrodb-utils](https://github.com/astrodbtoolkit/astrodb-scripts/actions/workflows/run_tests.yml/badge.svg)](https://github.com/astrodbtoolkit/astrodb-scripts/actions/workflows/run_tests.yml)
-[![Documentation Status](https://readthedocs.org/projects/astrodb-scripts/badge/?version=latest)](https://astrodb-scripts.readthedocs.io/en/latest/?badge=latest)
-[![PyPI version](https://badge.fury.io/py/astrodb-scripts.svg)](https://badge.fury.io/py/astrodb-utils)
+[![build](https://github.com/astrodbtoolkit/astrodb-scripts/actions/workflows/run_tests.yml/badge.svg)](https://github.com/astrodbtoolkit/astrodb-scripts/actions/workflows/run_tests.yml)
+[![Documentation Status](https://readthedocs.org/projects/astrodb-utils/badge/?version=latest)](https://astrodb-utils.readthedocs.io/en/latest/)
+[![PyPI - Version](https://img.shields.io/pypi/v/astrodb-utils)](https://pypi.org/project/astrodb-utils/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14397585.svg)](https://doi.org/10.5281/zenodo.14397585)
 
-The following tables are expected by AstroDB Toolkit and the `astrodb_utils` package:
-- Sources
-- Publications
-- Names
-- Telescopes
-- Instruments
 
-You may modify these tables, but doing so may decrease the interoperability of your database with other tools.
+The AstroDB Toolkit provides a set of tools to help astronomers work with and create databases. 
+The `astrodb_utils` package provides a set of functions to query and ingest data into databases built with the `astrodb-template-db` schema.
 
-# Developer Setup Instructions
-- Make new environment with Python=3.10
-- Install dependencies using an editable install:
-  ```
-  pip install -e ".[test]"
-  ```
-- In the `astrodb_utils/tests/` directory, clone the `astrodb-template-db` repo:
-  ```
-  git clone https://github.com/astrodbtoolkit/astrodb-template-db.git
-  ```
-- Be sure to run tests from the top level directory.
+[Documentation for the Toolkit](https://astrodb-utils.readthedocs.io/en/stable/)

@@ -19,9 +19,8 @@ import os
 import sys
 from importlib.metadata import version
 
+from git import Repo
 from sphinx_pyproject import SphinxConfig
-
-import astrodb_utils
 
 astrodb_utils_version = version("astrodb_utils")
 
@@ -34,6 +33,25 @@ config = SphinxConfig(
 sys.path.insert(0, os.path.abspath("../.."))
 sys.path.insert(0, os.path.abspath(".."))
 sys.path.insert(0, os.path.abspath("../schema"))
+
+# Get markdown files for the template schema from astrodb-template-db/ repository
+
+template_schema_path = os.path.join("pages", "template_schema", "astrodb-template-db")
+if os.path.exists(template_schema_path):
+    template_repo = Repo(template_schema_path)
+    try:
+        template_repo.git.reset("--hard")
+        template_repo.remotes.origin.pull()
+    except Exception as e:
+        print(f"Error updating template schema repository: {e}")
+        print(f"Using existing local copy of the template schema: {template_schema_path}")
+else:
+    url = "https://github.com/astrodbtoolkit/astrodb-template-db.git"
+    try:
+        Repo.clone_from(url, template_schema_path, branch="main")
+    except Exception as e:
+        print(f"Error cloning template schema repository: {e}")
+        print(f"Please ensure the repository exists and is accessible: {url}")
 
 
 # -- General configuration ------------------------------------------------
@@ -56,6 +74,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "nbsphinx",
     "pydata_sphinx_theme",
+    'sphinx_mdinclude',
 ]
 
 
@@ -82,7 +101,8 @@ master_doc = "index"
 # General information about the project.
 project = "astrodb_utils"
 copyright = "2024, Kelle Cruz, Arjun B. Savel, David Rodriguez"
-# author = "Kelle Cruz, Arjun B. Savel, David Rodriguez"
+author = "Kelle Cruz, Arjun B. Savel, David Rodriguez"
+description = "Scripts for interacting with the AstroDB Toolkit"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -109,6 +129,7 @@ exclude_patterns = [
     "Thumbs.db",
     ".DS_Store",
     "../tests",
+    "pages/template_schema/astrodb-template-db/*",
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
@@ -125,18 +146,26 @@ todo_include_todos = False
 #
 # html_theme = "sphinx_book_theme"
 html_theme = "pydata_sphinx_theme"
-# html_favicon = "_static/favicon.png"
+html_favicon = "_static/Toolkit-logo.png"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#
-# html_theme_options = {}
+
+html_theme_options = {
+    "show_nav_level": 2,
+    "logo": {
+        "text": "AstroDB Toolkit",
+        "image_light": "_static/Toolkit-logo.png",
+        "image_dark": "_static/Toolkit-logo.png",
+    }
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-# html_static_path = ["_static"]
+html_static_path = ["_static"]
+html_logo = '_static/Toolkit-logo.png'
 
 
 # -- Options for HTMLHelp output ------------------------------------------

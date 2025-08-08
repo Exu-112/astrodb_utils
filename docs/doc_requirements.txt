@@ -1,7 +1,9 @@
 -e .
 tqdm
-markupsafe==2.0.1
+markupsafe==3.0.2
 nbsphinx
 pydata-sphinx-theme
 mock
 sphinx-pyproject
+sphinx_mdinclude 
+gitpython

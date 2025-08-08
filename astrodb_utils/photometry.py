@@ -12,11 +12,11 @@ from astropy.io.votable import parse
 
 from astrodb_utils import (
     AstroDBError,
-    find_publication,
-    find_source_in_db,
-    ingest_instrument,
     internet_connection,
 )
+from astrodb_utils.instruments import ingest_instrument
+from astrodb_utils.publications import find_publication
+from astrodb_utils.sources import find_source_in_db
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ def ingest_photometry(
 
     Parameters
     ----------
-    db: astrodbkit2.astrodb.Database
+    db: astrodbkit.astrodb.Database
     source: str
     band: str
     regime: str
@@ -153,7 +153,6 @@ def ingest_photometry(
         {
             "source": db_name,
             "band": band,
-            "regime": regime,
             "magnitude": str(
                 magnitude
             ),  # Convert to string to maintain significant digits
@@ -164,6 +163,10 @@ def ingest_photometry(
             "reference": reference,
         }
     ]
+    # In case regime column is not present
+    if regime is not None:
+        photometry_data[0]["regime"] = regime
+
     logger.debug(f"Photometry data: {photometry_data}")
 
     try:
@@ -171,7 +174,7 @@ def ingest_photometry(
             conn.execute(db.Photometry.insert().values(photometry_data))
             conn.commit()
         flags["added"] = True
-        logger.info(f"Photometry measurement added: \n" f"{photometry_data}")
+        logger.info(f"Photometry measurement added: \n{photometry_data}")
     except sqlalchemy.exc.IntegrityError as e:
         if "UNIQUE constraint failed:" in str(e):
             msg = "The measurement may be a duplicate."
@@ -188,16 +191,23 @@ def ingest_photometry(
                 "Add it with add_publication function."
             )
             if raise_error:
-                logger.error(msg+str(e))
-                raise AstroDBError(msg+str(e))
+                logger.error(msg + str(e))
+                raise AstroDBError(msg + str(e))
             else:
-                logger.warning(f"{msg}/n{str(e)}")
+                logger.warning(f"{msg}/n{e}")
 
     return flags
 
 
 def ingest_photometry_filter(
-    db, *, telescope=None, instrument=None, filter_name=None, ucd=None
+    db,
+    *,
+    telescope=None,
+    instrument=None,
+    filter_name=None,
+    ucd=None,
+    wavelength_col_name: str = "effective_wavelength_angstroms",
+    width_col_name: str = "width_angstroms",
 ):
     """
     Add a new photometry filter to the database
@@ -229,13 +239,18 @@ def ingest_photometry_filter(
         logger.info(f"Instrument {instrument} already exists.")
 
     # Get data from SVO
-    filter_id, wave_eff, fwhm, width_effective = fetch_svo(
-        telescope, instrument, filter_name
-    )
-    logger.info(
-        f"From SVO: Filter {filter_id} has effective wavelength {wave_eff} "
-        f"and FWHM {fwhm} and width_effective {width_effective}."
-    )
+    try:
+        filter_id, wave_eff, fwhm, width_effective = fetch_svo(
+            telescope, instrument, filter_name
+        )
+        logger.info(
+            f"From SVO: Filter {filter_id} has effective wavelength {wave_eff} "
+            f"and FWHM {fwhm} and width_effective {width_effective}."
+        )
+    except AstroDBError as e:
+        msg = f"Error fetching filter data from SVO: {e}"
+        logger.error(msg)
+        raise AstroDBError(msg)
 
     if ucd is None:
         ucd = assign_ucd(wave_eff)
@@ -249,15 +264,14 @@ def ingest_photometry_filter(
                     {
                         "band": filter_id,
                         "ucd": ucd,
-                        "effective_wavelength_angstroms": wave_eff.to(u.Angstrom).value,
-                        "width_angstroms": width_effective.to(u.Angstrom).value,
+                        wavelength_col_name: wave_eff.to(u.Angstrom).value,
+                        width_col_name: width_effective.to(u.Angstrom).value,
                     }
                 )
             )
             conn.commit()
         logger.info(
-            f"Added filter {filter_id} with effective wavelength {wave_eff}, "
-            f"width {width_effective}, and UCD {ucd}."
+            f"Added filter {filter_id} with effective wavelength {wave_eff}, width {width_effective}, and UCD {ucd}."
         )
     except sqlalchemy.exc.IntegrityError as e:
         if "UNIQUE constraint failed:" in str(e):
@@ -307,18 +321,18 @@ def fetch_svo(telescope: str = None, instrument: str = None, filter_name: str = 
     """
 
     if internet_connection() is False:
-        msg = (
-            "No internet connection. "
-            "Cannot fetch photometry filter information from the SVO website."
-        )
+        msg = "No internet connection. Cannot fetch photometry filter information from the SVO website."
         logger.error(msg)
         raise AstroDBError(msg)
 
-    url = (
-        f"http://svo2.cab.inta-csic.es/svo/theory/fps3/fps.php?ID="
-        f"{telescope}/{instrument}.{filter_name}"
-    )
-    r = requests.get(url)
+    url = f"http://svo2.cab.inta-csic.es/svo/theory/fps3/fps.php?ID={telescope}/{instrument}.{filter_name}"
+
+    try:
+        r = requests.get(url)
+    except requests.exceptions.ConnectTimeout as e:
+        msg = f"Connection timed out while trying to reach {url}. {e}"
+        logger.error(msg)
+        raise AstroDBError(msg)
 
     if r.status_code != 200:
         msg = f"Error retrieving {url}. Status code: {r.status_code}"

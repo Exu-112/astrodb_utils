@@ -170,5 +170,6 @@ cython_debug/
 .DS_Store
 
 # AstroDB Toolkit Specific
-tests/astrodb-template-db
-astrodb_utils/tests/astrodb-template-db
+astrodb-template-db/
+astrodb_utils/version.py
+astrodb-template-db/
